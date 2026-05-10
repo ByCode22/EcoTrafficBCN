@@ -27,8 +27,8 @@ Tota la intel·ligència corre localment als dispositius Arduino UNO Q, sense de
 | Component | Tecnologia |
 |---|---|
 | Hardware | Arduino UNO Q (Qualcomm QRB2210 NPU), webcam USB Brio 105 |
-| EdgeAI Cotxe | VideoObjectDetection model COCO preentrenat |
-| EdgeAI Semàfor | FOMO MobileNetV2 0.1 — 9ms latència, 72.2% F1 Score |
+| EdgeAI Cotxe | YoloX-Nano (COCO dataset, 80 classes) |
+| EdgeAI Semàfor | YoloX-Nano (COCO dataset, 80 classes) |
 | Comunicació | MQTT (paho-mqtt, broker Mosquitto) |
 | Backend | Python 3.13 amb Arduino App Lab |
 | Frontend | HTML5, CSS3, JavaScript ES6, Leaflet.js |
