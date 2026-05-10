@@ -12,7 +12,7 @@ El dashboard és accessible a `http://<IP_UNO_Q>:7000`
 
 ## Equip
 
-Desenvolupat en 24 hores durant **Interhack BCN 2026** — Qualcomm EdgeAI Challenge · BCN Clima.
+Desenvolupat en 20 hores durant **Interhack BCN 2026** — Qualcomm EdgeAI Challenge · BCN Clima.
 
 | Rol | Descripció |
 |---|---|
