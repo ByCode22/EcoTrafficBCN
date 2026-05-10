@@ -1,4 +1,4 @@
-name: Copy of copy of Detect Objects on Camera
+name: edge semaforo
 description: This example showcases object detection within a live feed from a USB camera.
 ports: []
 bricks:
