@@ -98,13 +98,13 @@ Score de demanda: cotxes x2 + vianants x3 + temps espera x0.5 + cotxes aturats d
 
 ---
 
-## Nodes al Dashboard
+## Nodes del sistema
 
-| Node | Ubicació | IP |
+| Node | Rol | IP |
 |---|---|---|
-| Node 01 | Casp / Pau Claris | 10.63.0.136 |
-| Node 02 | Casp / Llúria | Per assignar |
-| Node 03 | Casp / Bruc | Per assignar |
+| Node Cotxe | Detecció de vehicles i alertes | 172.20.10.6 |
+| Node Semàfor | Gestió del semàfor | 172.20.10.2 |
+| Broker MQTT | Comunicació entre nodes | 172.20.10.3 |
 
 ---
 
