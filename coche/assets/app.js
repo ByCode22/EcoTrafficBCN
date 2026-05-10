@@ -21,7 +21,7 @@ function injectZeroWaveUI() {
     zwPanel.className = 'container container-right';
     zwPanel.innerHTML = `
         <div style="padding:4px">
-            <h2 style="font-size:14px;margin-bottom:12px;color:#333">🚗 ZeroWave — Vista del Vehículo</h2>
+            <h2 style="font-size:14px;margin-bottom:12px;color:#333">🚗 EcoTraffic — Nodo Coche</h2>
 
             <div style="background:#f0f4ff;border-radius:8px;padding:12px;margin-bottom:12px">
                 <div style="font-size:11px;color:#555;margin-bottom:8px;font-weight:bold">MI VEHÍCULO</div>
@@ -48,7 +48,7 @@ function injectZeroWaveUI() {
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
                 <div style="background:#fff3e0;border-radius:6px;padding:8px;text-align:center">
                     <div style="font-size:9px;color:#888">Cola delante</div>
                     <div id="zw-queue" style="font-size:20px;font-weight:bold;color:#e65100">—</div>
@@ -58,11 +58,6 @@ function injectZeroWaveUI() {
                     <div style="font-size:9px;color:#888">Parados</div>
                     <div id="zw-stopped" style="font-size:20px;font-weight:bold;color:#c62828">—</div>
                     <div style="font-size:9px;color:#888">delante</div>
-                </div>
-                <div style="background:#e8f5e9;border-radius:6px;padding:8px;text-align:center">
-                    <div style="font-size:9px;color:#888">Peatones</div>
-                    <div id="zw-pedestrians" style="font-size:20px;font-weight:bold;color:#2e7d32">—</div>
-                    <div style="font-size:9px;color:#888">detectados</div>
                 </div>
             </div>
 
@@ -98,7 +93,6 @@ function updateZeroWaveUI(data) {
 
     const ego = data.ego_vehicle || {};
 
-    // Estado del vehículo propio
     const egoLight = document.getElementById('ego-light');
     const egoStatus = document.getElementById('ego-status');
     const egoLightsPassed = document.getElementById('ego-lights-passed');
@@ -121,18 +115,14 @@ function updateZeroWaveUI(data) {
     document.getElementById('ego-total-stop').textContent = (ego.total_stop_sec ?? 0) + 's';
     document.getElementById('ego-stops-count').textContent = ego.stops_count ?? 0;
 
-    // Cola y peatones
     document.getElementById('zw-queue').textContent = data.queue_length ?? 0;
     document.getElementById('zw-stopped').textContent = data.cars_stopped_ahead ?? 0;
-    document.getElementById('zw-pedestrians').textContent = data.pedestrians_detected ?? 0;
     document.getElementById('zw-co2').textContent = (data.co2_saved_kg ?? 0) + ' kg';
     document.getElementById('zw-elapsed').textContent = (data.elapsed_sec ?? 0) + 's';
 
-    // Alerta
     document.getElementById('congestion-alert').style.display =
         data.congestion_alert ? 'block' : 'none';
 
-    // Cola de coches ordenada
     const queueEl = document.getElementById('cars-queue');
     if (data.cars && data.cars.length > 0) {
         queueEl.innerHTML = data.cars.map((c, i) => {
@@ -199,7 +189,7 @@ function initSocketIO() {
     });
     socket.on('disconnect', () => {
         if (errorContainer) {
-            errorContainer.textContent = 'Connection to the board lost.';
+            errorContainer.textContent = 'Conexión con la placa perdida.';
             errorContainer.style.display = 'block';
         }
     });
@@ -215,7 +205,7 @@ function updateFeedback(detection) {
     if (!detection) {
         feedbackContentElement.innerHTML = `
             <img src="img/stars.svg" alt="Stars">
-            <p class="feedback-text">System response will appear here</p>
+            <p class="feedback-text">Esperando detecciones...</p>
         `;
         return;
     }
@@ -229,7 +219,6 @@ function updateFeedback(detection) {
                 ${stopped ? 'Parado' : 'En movimiento'}
             </div>
             <div style="font-size:12px;color:#888">${detection.cars_ahead ?? 0} coches delante</div>
-            <div style="font-size:12px;color:#888">${detection.pedestrians_detected ?? 0} peatones</div>
             <div style="font-size:11px;color:#aaa;margin-top:4px">CO₂: ${detection.co2_saved_kg ?? 0} kg</div>
         </div>
     `;
@@ -246,7 +235,7 @@ function renderDetections() {
         recentDetectionsElement.innerHTML = `
             <div class="no-recent-scans">
                 <img src="./img/no-face.svg">
-                No object detected yet
+                Sin objetos detectados
             </div>
         `;
         return;
@@ -262,7 +251,7 @@ function renderDetections() {
         const contentText = document.createElement('span');
         contentText.className = 'scan-content';
         contentText.innerHTML = `
-            <span style="color:${color};font-weight:bold">${stopped ? '🛑 PARADO' : '🚗 MOVIMIENTO'}</span>
+            <span style="color:${color};font-weight:bold">${stopped ? '🛑 PARADO' : '🚗 EN MOVIMIENTO'}</span>
             — ${scan.cars_ahead ?? 0} coches delante
             — parado: ${ego.current_stop_sec ?? 0}s
         `;
