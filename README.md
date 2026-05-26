@@ -2,152 +2,167 @@
 
 **EdgeAI Smart Traffic System** — Interhack BCN 2026 · Qualcomm EdgeAI Challenge · BCN Clima
 
-EcoTraffic és una solució tecnològica que optimitza la mobilitat urbana i redueix l'impacte mediambiental a Barcelona mitjançant nodes Edge AI Vision que gestionen el trànsit en temps real, sense dependre del cloud.
+EcoTraffic is a technological solution that optimizes urban mobility and reduces environmental impact in Barcelona through Edge AI Vision nodes that manage traffic in real time — without relying on the cloud.
+
+> Built in **24 hours** at Interhack BCN 2026 — Qualcomm EdgeAI Challenge · BCN Clima track.
 
 ---
 
-## El problema
+## The Problem
 
-Els semàfors actuals funcionen amb cicles fixos, completament desconnectats de la realitat del trànsit. Això genera ones verdes trencades, semàfors en vermell sense cap vehicle creuant, cues innecessàries i emissions de CO₂ evitables per ralentí prolongat.
-
----
-
-## La solució
-
-EcoTraffic combina tres nodes intel·ligents que es comuniquen entre ells via MQTT:
-
-El Node Cotxe detecta vehicles i calcula temps d'espera des de la perspectiva del vehicle. El Node Semàfor rep alertes i decideix quan canviar el cicle per optimitzar el flux. El Dashboard visualitza tot en temps real amb mapes, mètriques i CO₂ estalviat.
-
-Tota la intel·ligència corre localment als dispositius Arduino UNO Q, sense dependre del cloud, amb latència mínima i cost d'infraestructura zero.
+Current traffic lights operate on fixed cycles, completely disconnected from real traffic conditions. This causes broken green waves, red lights with no vehicles crossing, unnecessary queues, and avoidable CO₂ emissions from prolonged idling.
 
 ---
 
-## Tecnologia
+## The Solution
 
-| Component | Tecnologia |
+EcoTraffic combines three intelligent nodes that communicate via MQTT:
+
+- **Vehicle Node** detects vehicles and calculates waiting times from the vehicle's perspective.
+- **Traffic Light Node** receives alerts and decides when to change the cycle to optimize flow.
+- **Dashboard** visualizes everything in real time — interactive map, global metrics, and CO₂ saved.
+
+All intelligence runs locally on Arduino UNO Q devices. No cloud dependency, minimum latency, zero infrastructure cost.
+
+---
+
+## Tech Stack
+
+| Component | Technology |
 |---|---|
-| Hardware | Arduino UNO Q (Qualcomm QRB2210 NPU), webcam USB Brio 105 |
-| EdgeAI Cotxe | YoloX-Nano (COCO dataset, 80 classes) |
-| EdgeAI Semàfor | YoloX-Nano (COCO dataset, 80 classes) |
-| Comunicació | MQTT (paho-mqtt, broker Mosquitto) |
-| Backend | Python 3.13 amb Arduino App Lab |
+| Hardware | Arduino UNO Q (Qualcomm QRB2210 NPU), USB Webcam Brio 105 |
+| EdgeAI (Vehicle) | YoloX-Nano (COCO dataset, 80 classes) |
+| EdgeAI (Traffic Light) | YoloX-Nano (COCO dataset, 80 classes) |
+| Communication | MQTT (paho-mqtt, Mosquitto broker) |
+| Backend | Python 3.13 with Arduino App Lab |
 | Frontend | HTML5, CSS3, JavaScript ES6, Leaflet.js |
 
 ---
 
-## Arquitectura del sistema
+## System Architecture
 
-Node Cotxe (Arduino UNO Q + webcam) detecta vehicles amb EdgeAI, fa tracking per posició entre frames, calcula temps d'espera individuals i acumulats, i envia alertes MQTT només quan hi ha una anomalia.
+```
+[Vehicle Node]          [Traffic Light Node]
+Arduino UNO Q           Arduino UNO Q
++ Webcam                + Webcam
++ YoloX-Nano            + YoloX-Nano (FOMO)
++ Tracking              + Demand score
++ MQTT alerts    ──→    + Priority logic
+                        + RGB LED control
+         ↓                      ↓
+              [MQTT Broker]
+              Mosquitto @ 172.20.10.3:1883
+                        ↓
+              [Web Dashboard]
+              Real-time map + metrics + CO₂ saved
+```
 
-El broker MQTT (172.20.10.3:1883) rep les alertes al topic ecoflow/cotxe i les distribueix.
+The Vehicle Node detects vehicles via EdgeAI, tracks them by position between frames, calculates individual and cumulative waiting times, and sends MQTT alerts only when an anomaly is detected.
 
-El Node Semàfor (Arduino UNO Q + webcam) rep les alertes, detecta vehicles i vianants localment amb FOMO, calcula un score de demanda dinàmic, gestiona prioritats per emergències i controla els LEDs RGB.
-
-El Dashboard web visualitza l'estat de tots els nodes en temps real amb mapa interactiu, mètriques globals i CO₂ estalviat.
-
----
-
-## Node Cotxe — Sistema d'alertes intel·ligents
-
-El vehicle només envia alertes al semàfor quan detecta situacions que requereixen intervenció. Els llindars s'ajusten automàticament segons si és hora punta o no.
-
-| Cas | Condició | Cooldown |
-|---|---|---|
-| 🚨 Emergència nivell 5 | Ambulància, policia, bombers | Sense cooldown |
-| 🚌 Prioritat alta nivell 4 | Bus, camió especial | 3s |
-| ⏱️ Aturat al semàfor | +20s fora hora punta / +45s hora punta | 10s |
-| ⏱️ Acumulat a la ruta | +90s fora hora punta / +180s hora punta | 10s |
-| 🔴 Ruta penalitzada | +4 parades i +60s acumulat | 10s |
-| 🟡 Sense trànsit creuant | +10s aturat, 0 cotxes passant | 10s |
-| 📈 Cua creixent | +3 cotxes en 5 segons | 10s |
-| ⚠️ Congestió sostinguda | 10s seguits amb densitat alta | 10s |
-| 📉 Eficiència molt baixa | Menys del 20% del temps en moviment | 10s |
+The Traffic Light Node receives alerts, detects vehicles and pedestrians locally with FOMO, calculates a dynamic demand score, handles emergency priorities, and controls the RGB LEDs.
 
 ---
 
-## Node Semàfor — Lògica de decisió
+## Vehicle Node — Smart Alert System
 
-Score de demanda: cotxes x2 + vianants x3 + temps espera x0.5 + cotxes aturats davant x1.5 + temps aturat ego x0.3 + congestió +5
+Alerts are only sent when the situation requires intervention. Thresholds adjust automatically based on peak hours.
 
-| Tipus vehicle | Nivell | Comportament |
+| Case | Condition | Cooldown |
 |---|---|---|
-| Emergència / Ambulància | 5 o més | VERD immediat 10s |
-| Policia | 4 | Score +4 |
+| 🚨 Emergency level 5 | Ambulance, police, fire truck | No cooldown |
+| 🚌 High priority level 4 | Bus, special vehicle | 3s |
+| ⏱️ Stopped at light | +20s off-peak / +45s peak hour | 10s |
+| ⏱️ Accumulated route delay | +90s off-peak / +180s peak hour | 10s |
+| 🔴 Penalized route | +4 stops and +60s accumulated | 10s |
+| 🟡 No crossing traffic | +10s stopped, 0 cars passing | 10s |
+| 📈 Growing queue | +3 cars in 5 seconds | 10s |
+| ⚠️ Sustained congestion | 10s with high density | 10s |
+| 📉 Very low efficiency | Less than 20% of time moving | 10s |
+
+---
+
+## Traffic Light Node — Decision Logic
+
+**Demand score:** `cars×2 + pedestrians×3 + wait_time×0.5 + stopped_cars×1.5 + ego_wait×0.3 + congestion+5`
+
+| Vehicle type | Level | Behavior |
+|---|---|---|
+| Emergency / Ambulance | 5+ | Immediate GREEN for 10s |
+| Police | 4 | Score +4 |
 | Bus | 3 | Score +3 |
-| Turisme | 1-2 | Score normal |
-| Cap cotxe | 0 | VERMELL |
+| Car | 1–2 | Normal score |
+| No vehicles | 0 | RED |
 
 ---
 
-## Topics MQTT
+## MQTT Topics
 
-| Topic | Qui publica | Contingut |
+| Topic | Publisher | Content |
 |---|---|---|
-| ecoflow/cotxe | Node Cotxe | Alertes amb dades de trànsit |
-| ecoflow/semaforo | Node Semàfor | Estat del semàfor |
+| `ecoflow/cotxe` | Vehicle Node | Traffic alerts with data |
+| `ecoflow/semaforo` | Traffic Light Node | Traffic light state |
 
 ---
 
-## Hores punta configurades
+## Peak Hours Configuration
 
-| Franja | Descripció |
+| Time slot | Description |
 |---|---|
-| 08:00 - 09:59 | Matí — anada a la feina |
-| 14:00 - 15:59 | Migdia — sortida a dinar |
-| 18:00 - 20:59 | Tarda — tornada a casa |
+| 08:00 – 09:59 | Morning commute |
+| 14:00 – 15:59 | Lunch break |
+| 18:00 – 20:59 | Evening commute |
 
 ---
 
-## Nodes del sistema
+## Repository Structure
 
-| Node | Rol | IP |
-|---|---|---|
-| Node Cotxe | Detecció de vehicles i alertes | 172.20.10.6 |
-| Node Semàfor | Gestió del semàfor | 172.20.10.2 |
-| Broker MQTT | Comunicació entre nodes | 172.20.10.3 |
-
----
-
-## Estructura del repositori
-
-- coche/main.py — detecció EdgeAI, tracking, alertes MQTT
-- coche/assets/app.js — frontend WebSocket del node cotxe
-- coche/assets/index.html — vista en temps real del node cotxe
-- semaforo/main.py — lògica green wave, gestió de prioritats, LEDs
-- semaforo/assets/app.js — frontend WebSocket del node semàfor
-- semaforo/assets/index.html — vista en temps real del node semàfor
-- dashboard/index.html — pàgina principal amb mapa i mètriques globals
-- dashboard/app.js — lògica de connexió i visualització del dashboard
+```
+├── coche/
+│   ├── main.py              # EdgeAI detection, tracking, MQTT alerts
+│   └── assets/
+│       ├── app.js           # Vehicle node WebSocket frontend
+│       └── index.html       # Vehicle node real-time view
+├── semaforo/
+│   ├── main.py              # Green wave logic, priority management, LEDs
+│   └── assets/
+│       ├── app.js           # Traffic light node WebSocket frontend
+│       └── index.html       # Traffic light node real-time view
+└── dashboard/
+    ├── index.html           # Main dashboard with interactive map
+    └── app.js               # Connection logic and global metrics visualization
+```
 
 ---
 
-## Instal·lació
+## Setup
 
+```bash
 pip install paho-mqtt
+```
 
-El frontend de cada node és accessible a http://IP_UNO_Q:7000
-
----
-
-## Impacte potencial
-
-- Reducció del 30% en temps d'espera per vehicle
-- Reducció del 18% en emissions de partícules contaminants als nodes monitoritzats
-- Reducció prevista del 25% d'emissions contaminants per al 2030 amb implementació a escala urbana
-- Menys de 50€ de cost per node
-- Sense infraestructura centralitzada — cada node és autònom
-- Privacitat by design — les imatges mai surten del dispositiu
-- Edge computing — zero latència cloud, funciona sense internet
+Each node's frontend is accessible at `http://<UNO_Q_IP>:7000`
 
 ---
 
-## Equip
+## Potential Impact
 
-Desenvolupat en 24 hores durant Interhack BCN 2026 — Qualcomm EdgeAI Challenge · BCN Clima.
+- **30% reduction** in average vehicle waiting time
+- **18% reduction** in particulate emissions at monitored nodes
+- **25% projected reduction** in pollutant emissions by 2030 at urban scale
+- **Under €50** per node
+- No centralized infrastructure — each node is autonomous
+- **Privacy by design** — images never leave the device
+- **Edge computing** — zero cloud latency, works without internet
 
-| Rol | Descripció |
+---
+
+## Team
+
+Developed in 24 hours at Interhack BCN 2026.
+
+| Role | Description |
 |---|---|
-| Edge Cotxe | Detecció EdgeAI, tracking, alertes MQTT |
-| Edge Semàfor | Lògica green wave, gestió de prioritats, LEDs |
-| Dashboard | Visualització web, mapa interactiu, mètriques globals |
-| Coordinació | Arquitectura, integració, pitch |
+| Edge Vehicle | EdgeAI detection, tracking, MQTT alerts |
+| Edge Traffic Light | Green wave logic, priority management, LEDs |
+| Dashboard | Web visualization, interactive map, global metrics |
+| Coordination | Architecture, integration, pitch |
